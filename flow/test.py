@@ -7,7 +7,8 @@ from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEndpointEmbeddings
 import os
 
-load_dotenv()
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
+
 llm = ChatGroq(
     model="llama-3.1-8b-instant", 
     api_key=os.getenv("GROQ_API_KEY")
@@ -18,8 +19,18 @@ embeddings = HuggingFaceEndpointEmbeddings(
     huggingfacehub_api_token=os.getenv("HUGGINGFACEHUB_API_TOKEN")
 )
 
-rsult=llm.invoke("WHO IS MESSI?")
+'''rsult=llm.invoke("WHO IS MESSI?")
 print(rsult.content)
 
 result_embedding = embeddings.embed_query(rsult.content)
-print(result_embedding)
+print(result_embedding)'''
+
+video_id = "Gfr50f6ZBvo" # only the ID, not full URL
+try:
+    ytt_api = YouTubeTranscriptApi()
+    fetched_transcript = ytt_api.fetch(video_id)
+    transcript = " ".join(snippet.text for snippet in fetched_transcript)
+    print(transcript)
+
+except TranscriptsDisabled:
+    print("No captions available for this video.")
