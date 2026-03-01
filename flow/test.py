@@ -37,4 +37,6 @@ except TranscriptsDisabled:
 
 splitter=RecursiveCharacterTextSplitter(chunk_size=1000,chunk_overlap=200)
 chunks=splitter.split_text(transcript)
-print(chunks[0])
+vectorstore=FAISS.from_texts(chunks,embeddings)
+retriever=vectorstore.as_retriever(search_kwargs={"k":3})
+print(retriever.invoke("What is the video about?"))
