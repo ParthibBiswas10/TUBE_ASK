@@ -33,3 +33,7 @@ venv.bak/
 .env
 .env.local
 .env.*.local
+__pycache__/
+flow/.env
+flow/venv/
+flow/__pycache__/
