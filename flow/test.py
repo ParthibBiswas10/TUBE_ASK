@@ -30,7 +30,6 @@ try:
     ytt_api = YouTubeTranscriptApi()
     fetched_transcript = ytt_api.fetch(video_id)
     transcript = " ".join(snippet.text for snippet in fetched_transcript)
-    print(transcript)
 
 except TranscriptsDisabled:
     print("No captions available for this video.")
@@ -39,4 +38,19 @@ splitter=RecursiveCharacterTextSplitter(chunk_size=1000,chunk_overlap=200)
 chunks=splitter.split_text(transcript)
 vectorstore=FAISS.from_texts(chunks,embeddings)
 retriever=vectorstore.as_retriever(search_kwargs={"k":3})
-print(retriever.invoke("What is the video about?"))
+#print(retriever.invoke("What is the video about?"))
+prompt=PromptTemplate(
+    template=""""You are a helpful assistant.
+      Answer ONLY from the provided transcript context.
+      If the context is insufficient, just say you don't know.
+
+      {context}
+      Question: {question}""",
+    input_variables=["context","question"]
+)
+question="whos messi"
+docs=retriever.invoke(question)
+context="\n".join([doc.page_content for doc in docs])
+final_prompt=prompt.invoke({"context": context, "question": question})
+answer=llm.invoke(final_prompt)
+print(answer.content)
