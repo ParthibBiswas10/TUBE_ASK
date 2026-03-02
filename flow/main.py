@@ -47,12 +47,21 @@ embeddings = HuggingFaceEndpointEmbeddings(
 
 # Prompt template
 prompt = PromptTemplate(
-    template="""You are a helpful assistant.
-      Answer ONLY from the provided transcript context.
-      If the context is insufficient, just say the question is out of context so, you can't answer.
+    template="""You are a helpful assistant that answers questions based on a YouTube video transcript.
+      
+      Guidelines:
+      - Answer based on the provided transcript context or maybe related to that context
+      - If the transcript discusses the topic, explain it based on what's mentioned or implied
+      - Always respond in English, even if the transcript is in another language - translate the relevant information
+      - Be helpful and provide clear explanations
+      - Only say "out of context" if the topic is completely unrelated to the video content
 
+      Transcript Context:
       {context}
-      Question: {question}""",
+      
+      Question: {question}
+      
+      Answer:""",
     input_variables=["context", "question"]
 )
 
