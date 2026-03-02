@@ -40,7 +40,7 @@ print(rsult.content)
 result_embedding = embeddings.embed_query(rsult.content)
 print(result_embedding)'''
 
-video_url = "https://youtu.be/8ekTeZD_lNY?si=-OgOL931zX-mBJeH"  # Paste full URL or video ID
+video_url = input("Enter YouTube URL or Video ID: ").strip()  # Paste full URL or video ID
 video_id = extract_video_id(video_url)
 try:
     ytt_api = YouTubeTranscriptApi()
