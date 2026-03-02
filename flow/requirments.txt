@@ -20,3 +20,18 @@ huggingface-hub
 
 # Environment Variable Management
 python-dotenv
+
+# FastAPI & Server
+fastapi
+uvicorn[standard]
+python-multipart
+
+# Groq Integration
+langchain-groq
+
+# YouTube Transcript
+youtube-transcript-api
+
+# Vector Store
+langchain-community
+faiss-cpu
