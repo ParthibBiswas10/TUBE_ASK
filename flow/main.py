@@ -106,10 +106,40 @@ async def load_video(request: LoadVideoRequest):
         )
     
     try:
-        # Fetch transcript
+        # Fetch transcript with language fallback
         ytt_api = YouTubeTranscriptApi()
-        fetched_transcript = ytt_api.fetch(video_id)
+        transcript_list = ytt_api.list(video_id)
+        
+        fetched_transcript = None
+        
+        # Try to get English transcript first
+        try:
+            fetched_transcript = transcript_list.find_transcript(['en', 'en-US', 'en-GB']).fetch()
+        except Exception:
+            pass
+        
+        # If no English, try to get any transcript and translate to English
+        if fetched_transcript is None:
+            try:
+                # Get any available transcript (prefer generated over manual for accuracy)
+                available = list(transcript_list)
+                if available:
+                    transcript_obj = available[0]
+                    # Try to translate to English if possible
+                    try:
+                        fetched_transcript = transcript_obj.translate('en').fetch()
+                    except Exception:
+                        # If translation fails, use original transcript
+                        fetched_transcript = transcript_obj.fetch()
+            except Exception:
+                pass
+        
+        if fetched_transcript is None:
+            raise HTTPException(status_code=400, detail="No transcripts available for this video.")
+        
         transcript = " ".join(snippet.text for snippet in fetched_transcript)
+    except HTTPException:
+        raise
     except TranscriptsDisabled:
         raise HTTPException(status_code=400, detail="No captions available for this video.")
     except Exception as e:
