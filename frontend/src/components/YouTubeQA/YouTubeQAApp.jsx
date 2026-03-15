@@ -150,6 +150,76 @@ export default function YouTubeQAApp() {
         .send-btn:hover { background: #ff1a1a !important; transform: scale(1.03); }
         .load-btn:hover { background: #ff1a1a !important; }
         .url-input:focus { border-color: ${ACCENT} !important; }
+
+        .wrap-input-8 .input {
+          width: 100%;
+          box-sizing: border-box;
+          letter-spacing: 1px;
+          background-color: #0e0e0e;
+          border: 1px solid #ccc;
+          padding: 7px 14px 9px;
+          transition: 0.4s;
+          font-family: 'DM Mono', monospace;
+          color: #e8e8e8;
+          border-radius: 8px;
+        }
+
+        .wrap-input-8 .input:focus {
+          outline: none;
+        }
+
+        .wrap-input-8 {
+          width: 100%;
+          margin: 0 0 12px 0;
+          position: relative;
+          overflow: hidden;
+          border-radius: 8px;
+        }
+
+        .wrap-input-8 .input ~ .focus-border:before,
+        .wrap-input-8 .input ~ .focus-border:after {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 0;
+          height: 2px;
+          background-color: #FF3B3B;
+          transition: 0.3s;
+        }
+        .wrap-input-8 .input ~ .focus-border:after {
+          top: auto;
+          bottom: 0;
+          left: auto;
+          right: 0;
+        }
+        .wrap-input-8 .input ~ .focus-border i:before,
+        .wrap-input-8 .input ~ .focus-border i:after {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 2px;
+          height: 0;
+          background-color: #FF3B3B;
+          transition: 0.4s;
+        }
+        .wrap-input-8 .input ~ .focus-border i:after {
+          left: auto;
+          right: 0;
+          top: auto;
+          bottom: 0;
+        }
+        .wrap-input-8 .input:focus ~ .focus-border:before,
+        .wrap-input-8 .input:focus ~ .focus-border:after {
+          width: 100%;
+          transition: 0.3s;
+        }
+        .wrap-input-8 .input:focus ~ .focus-border i:before,
+        .wrap-input-8 .input:focus ~ .focus-border i:after {
+          height: 100%;
+          transition: 0.4s;
+        }
       `}</style>
 
       {/* Background Grainient */}
@@ -165,13 +235,13 @@ export default function YouTubeQAApp() {
         }}
       >
         <Grainient
-          color1="#db1a1a"
+          color1="#e01e37"
           color2="#0f0f10"
           color3="#f0a3a3"
-          timeSpeed={0.4}
-          colorBalance={0.54}
+          timeSpeed={0.25}
+          colorBalance={0.85}
           warpStrength={1}
-          warpFrequency={5}
+          warpFrequency={0}
           warpSpeed={2}
           warpAmplitude={50}
           blendAngle={0}
@@ -181,12 +251,12 @@ export default function YouTubeQAApp() {
           grainAmount={0.1}
           grainScale={2}
           grainAnimated={false}
-          contrast={1.5}
+          contrast={1}
           gamma={1}
           saturation={1}
-          centerX={0}
-          centerY={0}
-          zoom={0.9}
+          centerX={0.2}
+          centerY={0.11}
+          zoom={0.7}
         />
       </div>
 
@@ -269,25 +339,19 @@ export default function YouTubeQAApp() {
               >
                 YOUTUBE URL
               </p>
-              <input
-                className="url-input"
-                value={videoUrl}
-                onChange={(e) => setVideoUrl(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleLoadVideo()}
-                placeholder="https://youtube.com/watch?v=..."
-                style={{
-                  width: "100%",
-                  background: "#0e0e0e",
-                  border: "1px solid #2a2a2a",
-                  borderRadius: 8,
-                  padding: "10px 14px",
-                  color: "#e8e8e8",
-                  fontSize: 13,
-                  fontFamily: "'DM Mono', monospace",
-                  marginBottom: 10,
-                  transition: "border-color 0.2s",
-                }}
-              />
+              <div className="wrap-input-8">
+                <input
+                  className="input"
+                  type="text"
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleLoadVideo()}
+                  placeholder="Paste YouTube link..."
+                />
+                <span className="focus-border">
+                  <i></i>
+                </span>
+              </div>
               {urlError && (
                 <p style={{ color: ACCENT, fontSize: 11, marginBottom: 10 }}>
                   {urlError}
