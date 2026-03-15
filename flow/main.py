@@ -12,6 +12,15 @@ import os
 import re
 import time
 from requests.exceptions import RequestException
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+import logging
+from datetime import datetime
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
@@ -119,6 +128,35 @@ prompt = PromptTemplate(
 video_sessions = {}
 
 
+def get_transcript_with_headers(video_id: str):
+    """Fetch transcript with browser headers to bypass IP blocking."""
+    # Browser headers to mimic real user
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate',
+        'Referer': 'https://www.youtube.com/',
+    }
+    
+    # Create session with retry strategy
+    session = requests.Session()
+    retry_strategy = Retry(
+        total=3,
+        backoff_factor=1,
+        status_forcelist=[429, 500, 502, 503, 504],
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    session.headers.update(headers)
+    
+    # Fetch transcript with custom session
+    ytt_api = YouTubeTranscriptApi(http_client=session)
+    transcript_list = ytt_api.list(video_id)
+    
+    return transcript_list
+
+
 def extract_video_id(url: str) -> str:
     """Extract video ID from YouTube URL or return as-is if already an ID."""
     patterns = [
@@ -165,9 +203,9 @@ async def load_video(request: LoadVideoRequest):
         )
     
     try:
-        # Fetch transcript with language fallback
-        ytt_api = YouTubeTranscriptApi()
-        transcript_list = ytt_api.list(video_id)
+        # Fetch transcript with language fallback and browser headers
+        logger.info(f"Loading video {video_id}...")
+        transcript_list = get_transcript_with_headers(video_id)
         
         fetched_transcript = None
         
@@ -200,9 +238,21 @@ async def load_video(request: LoadVideoRequest):
     except HTTPException:
         raise
     except TranscriptsDisabled:
+        logger.error(f"Transcripts disabled for video {video_id}")
         raise HTTPException(status_code=400, detail="No captions available for this video.")
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to fetch transcript: {str(e)}")
+        error_msg = str(e)
+        logger.error(f"Transcript fetch error: {error_msg}")
+        
+        # Identify specific errors
+        if "429" in error_msg or "rate_limit" in error_msg.lower():
+            detail = "API rate limit exceeded. Try again in a few minutes."
+        elif "IP" in error_msg or "blocking" in error_msg.lower():
+            detail = "YouTube is blocking requests. Response: " + error_msg[:100]
+        else:
+            detail = f"Failed to fetch transcript: {error_msg[:200]}"
+        
+        raise HTTPException(status_code=400, detail=detail)
     
     # Split text into chunks
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
@@ -211,19 +261,30 @@ async def load_video(request: LoadVideoRequest):
     # Create vectorstore with retry logic
     for attempt in range(3):
         try:
+            logger.info(f"Embedding attempt {attempt + 1} for video {video_id}")
             vectorstore = FAISS.from_texts(chunks, embeddings)
             retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
             video_sessions[video_id] = retriever
+            logger.info(f"✅ Successfully loaded video {video_id}")
             return LoadVideoResponse(
                 success=True,
                 message="Video loaded successfully!",
                 video_id=video_id
             )
         except (RequestException, ConnectionError, TimeoutError) as e:
+            error_msg = str(e)
+            logger.warning(f"Embedding error (attempt {attempt + 1}): {error_msg}")
+            
+            if "429" in error_msg or "quota" in error_msg.lower():
+                raise HTTPException(
+                    status_code=429, 
+                    detail="HuggingFace API quota exceeded. Upgrade your plan or try tomorrow."
+                )
+            
             if attempt < 2:
                 time.sleep(2 ** attempt)
             else:
-                raise HTTPException(status_code=500, detail="Failed to create embeddings. Check your connection.")
+                raise HTTPException(status_code=500, detail="Failed to create embeddings. Check your API tokens.")
     
     raise HTTPException(status_code=500, detail="Unexpected error during video loading.")
 
@@ -240,20 +301,37 @@ async def ask_question(request: AskRequest):
     
     for attempt in range(3):
         try:
+            logger.info(f"Processing question (attempt {attempt + 1}): {request.question[:50]}...")
             docs = retriever.invoke(request.question)
             context = "\n".join([doc.page_content for doc in docs])
             final_prompt = prompt.invoke({"context": context, "question": request.question})
             answer = llm.invoke(final_prompt)
+            logger.info(f"✅ Answer generated successfully")
             return AskResponse(answer=answer.content)
         except (RequestException, ConnectionError, TimeoutError) as e:
+            error_msg = str(e)
+            logger.warning(f"Network error (attempt {attempt + 1}): {error_msg}")
+            
+            if "429" in error_msg or "rate" in error_msg.lower():
+                raise HTTPException(
+                    status_code=429,
+                    detail="⚠️ API rate limit hit. You're sending too many requests. Wait a few minutes."
+                )
+            
             if attempt < 2:
                 time.sleep(2 ** attempt)
             else:
                 raise HTTPException(status_code=500, detail="Network error. Please try again.")
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            error_msg = str(e)
+            logger.error(f"Error processing question: {error_msg}")
+            
+            if "429" in error_msg or "rate_limit" in error_msg.lower():
+                raise HTTPException(status_code=429, detail="⚠️ Groq API rate limit exceeded. Try again soon.")
+            
+            raise HTTPException(status_code=500, detail=f"Error: {error_msg[:200]}")
     
-    raise HTTPException(status_code=500, detail="Unexpected error.")
+    raise HTTPException(status_code=500, detail="Unexpected error. Please try again.")
 
 
 @app.get("/health")
