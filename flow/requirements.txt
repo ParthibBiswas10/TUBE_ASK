@@ -25,6 +25,7 @@ python-dotenv
 fastapi
 uvicorn[standard]
 python-multipart
+gunicorn
 
 # Groq Integration
 langchain-groq
