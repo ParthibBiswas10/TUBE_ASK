@@ -1,3 +1,6 @@
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
 const ACCENT = "#FF3B3B";
 
 const Message = ({ msg, index }) => {
@@ -49,7 +52,82 @@ const Message = ({ msg, index }) => {
           letterSpacing: 0.2,
         }}
       >
-        {msg.content}
+        {isUser ? (
+          msg.content
+        ) : (
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              p: ({ children }) => (
+                <p style={{ margin: "0 0 8px 0", lineHeight: 1.65 }}>
+                  {children}
+                </p>
+              ),
+              strong: ({ children }) => (
+                <strong style={{ color: "#fff", fontWeight: 700 }}>
+                  {children}
+                </strong>
+              ),
+              ul: ({ children }) => (
+                <ul style={{ paddingLeft: 18, margin: "6px 0" }}>{children}</ul>
+              ),
+              ol: ({ children }) => (
+                <ol style={{ paddingLeft: 18, margin: "6px 0" }}>{children}</ol>
+              ),
+              li: ({ children }) => (
+                <li style={{ marginBottom: 4 }}>{children}</li>
+              ),
+              h2: ({ children }) => (
+                <h2
+                  style={{
+                    color: "#fff",
+                    fontSize: 15,
+                    fontWeight: 700,
+                    margin: "12px 0 6px",
+                  }}
+                >
+                  {children}
+                </h2>
+              ),
+              h3: ({ children }) => (
+                <h3
+                  style={{
+                    color: "#fff",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    margin: "10px 0 4px",
+                  }}
+                >
+                  {children}
+                </h3>
+              ),
+              code: ({ children }) => (
+                <code
+                  style={{
+                    background: "rgba(255,59,59,0.15)",
+                    color: ACCENT,
+                    padding: "2px 6px",
+                    borderRadius: 4,
+                    fontSize: 13,
+                  }}
+                >
+                  {children}
+                </code>
+              ),
+              hr: () => (
+                <hr
+                  style={{
+                    border: "none",
+                    borderTop: "1px solid rgba(255,255,255,0.1)",
+                    margin: "10px 0",
+                  }}
+                />
+              ),
+            }}
+          >
+            {msg.content}
+          </ReactMarkdown>
+        )}
       </div>
     </div>
   );

@@ -256,7 +256,10 @@ export default function YouTubeQAApp() {
               )}
               <button
                 className="load-btn"
-                onClick={handleLoadVideo}
+                onClick={() => {
+                  console.log("Loading video...");
+                  handleLoadVideo();
+                }}
                 style={{
                   width: "100%",
                   background: ACCENT,
@@ -481,6 +484,38 @@ export default function YouTubeQAApp() {
             </div>
           )}
         </div>
+
+        {/* Loading Overlay */}
+        {loading && !videoLoaded && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(14, 14, 14, 0.95)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 20,
+              zIndex: 9999,
+              animation: "fadeUp 0.3s ease forwards",
+            }}
+          >
+            <LoadingDots />
+            <p
+              style={{
+                color: "#888",
+                fontSize: 14,
+                letterSpacing: 1,
+              }}
+            >
+              Loading video transcript...
+            </p>
+          </div>
+        )}
       </div>
     </>
   );
