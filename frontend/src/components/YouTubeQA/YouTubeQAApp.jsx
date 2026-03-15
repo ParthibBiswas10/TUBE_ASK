@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import Message from "./Message";
 import LoadingDots from "./LoadingDots";
+import Grainient from "./Grainient";
 
 const ACCENT = "#FF3B3B";
 
@@ -150,6 +151,44 @@ export default function YouTubeQAApp() {
         .load-btn:hover { background: #ff1a1a !important; }
         .url-input:focus { border-color: ${ACCENT} !important; }
       `}</style>
+
+      {/* Background Grainient */}
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: -1,
+          pointerEvents: "none",
+        }}
+      >
+        <Grainient
+          color1="#db1a1a"
+          color2="#0f0f10"
+          color3="#f0a3a3"
+          timeSpeed={0.4}
+          colorBalance={0.54}
+          warpStrength={1}
+          warpFrequency={5}
+          warpSpeed={2}
+          warpAmplitude={50}
+          blendAngle={0}
+          blendSoftness={0.05}
+          rotationAmount={500}
+          noiseScale={2}
+          grainAmount={0.1}
+          grainScale={2}
+          grainAnimated={false}
+          contrast={1.5}
+          gamma={1}
+          saturation={1}
+          centerX={0}
+          centerY={0}
+          zoom={0.9}
+        />
+      </div>
 
       <div
         style={{
