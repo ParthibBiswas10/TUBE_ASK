@@ -37,3 +37,6 @@ __pycache__/
 flow/.env
 flow/venv/
 flow/__pycache__/
+.env
+.env.local
+.env.*.local

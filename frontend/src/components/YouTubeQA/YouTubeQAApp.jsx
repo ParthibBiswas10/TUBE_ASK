@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import Message from "./Message";
 import LoadingDots from "./LoadingDots";
 import Grainient from "./Grainient";
-
+const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
 const ACCENT = "#FF3B3B";
 
 const extractVideoId = (url) => {
@@ -35,13 +35,25 @@ export default function YouTubeQAApp() {
     setUrlError("");
     setVideoId(id);
     setLoading(true);
+    setMessages([
+      {
+        role: "assistant",
+        content:
+          "🔄 Fetching transcript... This may take 30-60 seconds for longer videos.",
+      },
+    ]);
 
     try {
-      const res = await fetch("http://localhost:8080/load", {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 min timeout
+
+      const res = await fetch(`${API_URL}/load`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ video_url: videoUrl }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       const data = await res.json();
 
       if (!res.ok) {
@@ -54,13 +66,20 @@ export default function YouTubeQAApp() {
       setMessages([
         {
           role: "assistant",
-          content: `Video loaded! Ask me anything about it — I'll analyze the transcript and answer your questions.`,
+          content: `✅ Video loaded! Ask me anything about it — I'll analyze the transcript and answer your questions.`,
         },
       ]);
     } catch (error) {
-      setUrlError(
-        "Failed to connect to server. Make sure the backend is running.",
-      );
+      if (error.name === "AbortError") {
+        setUrlError(
+          "Request timeout. The video might be too long. Try a shorter video.",
+        );
+      } else {
+        setUrlError(
+          "Failed to connect to server. Make sure the backend is running.",
+        );
+      }
+      setMessages([]);
     } finally {
       setLoading(false);
     }
@@ -74,7 +93,7 @@ export default function YouTubeQAApp() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8080/ask", {
+      const res = await fetch(`${API_URL}/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

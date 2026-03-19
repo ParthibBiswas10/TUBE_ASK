@@ -7,7 +7,7 @@ from langchain_core.prompts import PromptTemplate
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEndpointEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 import os
 import re
 import time
@@ -49,9 +49,8 @@ llm = ChatGroq(
     api_key=os.getenv("GROQ_API_KEY")
 )
 
-embeddings = HuggingFaceEndpointEmbeddings(
-    model="sentence-transformers/all-MiniLM-L6-v2",
-    huggingfacehub_api_token=os.getenv("HUGGINGFACEHUB_API_TOKEN")
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
 # Prompt template
@@ -128,33 +127,30 @@ prompt = PromptTemplate(
 video_sessions = {}
 
 
-def get_transcript_with_headers(video_id: str):
-    """Fetch transcript with browser headers to bypass IP blocking."""
-    # Browser headers to mimic real user
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate',
-        'Referer': 'https://www.youtube.com/',
-    }
-    
-    # Create session with retry strategy
-    session = requests.Session()
-    retry_strategy = Retry(
-        total=3,
-        backoff_factor=1,
-        status_forcelist=[429, 500, 502, 503, 504],
-    )
-    adapter = HTTPAdapter(max_retries=retry_strategy)
-    session.mount("http://", adapter)
-    session.mount("https://", adapter)
-    session.headers.update(headers)
-    
-    # Fetch transcript with custom session
-    ytt_api = YouTubeTranscriptApi(http_client=session)
-    transcript_list = ytt_api.list(video_id)
-    
-    return transcript_list
+def get_transcript_with_api(video_id: str) -> str:
+    """Fetch transcript using youtube-transcript-api."""
+    try:
+        logger.info(f"Attempting to get transcript for {video_id}...")
+        
+        ytt_api = YouTubeTranscriptApi()
+        try:
+            fetched_transcript = ytt_api.fetch(video_id)
+        except Exception as e:
+            logger.warning(f"Default fetch failed: {e}. Trying first available transcript...")
+            available_transcripts = list(ytt_api.list(video_id))
+            if not available_transcripts:
+                raise ValueError("No transcripts available for this video.")
+            fetched_transcript = available_transcripts[0].fetch()
+            
+        transcript_text = " ".join(snippet.text for snippet in fetched_transcript)
+        return transcript_text
+        
+    except TranscriptsDisabled:
+        logger.error("Transcripts are disabled for this video")
+        raise
+    except Exception as e:
+        logger.error(f"Error getting transcript: {str(e)}")
+        raise
 
 
 def extract_video_id(url: str) -> str:
@@ -166,7 +162,10 @@ def extract_video_id(url: str) -> str:
     for pattern in patterns:
         match = re.search(pattern, url)
         if match:
-            return match.group(1)
+            video_id = match.group(1)
+            logger.info(f"🔍 Pattern matched, extracted ID: {video_id}")
+            return video_id
+    logger.warning(f"⚠️ No pattern matched for URL: {url}")
     return url
 
 
@@ -192,10 +191,13 @@ class AskResponse(BaseModel):
 @app.post("/load", response_model=LoadVideoResponse)
 async def load_video(request: LoadVideoRequest):
     """Load a YouTube video and create embeddings from its transcript."""
+    logger.info(f"📥 Received URL: {request.video_url}")
     video_id = extract_video_id(request.video_url)
+    logger.info(f"✂️ Extracted video_id: {video_id}")
     
     # Check if already loaded
     if video_id in video_sessions:
+        logger.info(f"⚡ Video {video_id} already loaded")
         return LoadVideoResponse(
             success=True,
             message="Video already loaded!",
@@ -203,38 +205,13 @@ async def load_video(request: LoadVideoRequest):
         )
     
     try:
-        # Fetch transcript with language fallback and browser headers
+        # Fetch transcript using youtube-transcript-api
         logger.info(f"Loading video {video_id}...")
-        transcript_list = get_transcript_with_headers(video_id)
+        transcript = get_transcript_with_api(video_id)
+        logger.info(f"Got transcript of {len(transcript)} characters")
         
-        fetched_transcript = None
-        
-        # Try to get English transcript first
-        try:
-            fetched_transcript = transcript_list.find_transcript(['en', 'en-US', 'en-GB']).fetch()
-        except Exception:
-            pass
-        
-        # If no English, try to get any transcript and translate to English
-        if fetched_transcript is None:
-            try:
-                # Get any available transcript (prefer generated over manual for accuracy)
-                available = list(transcript_list)
-                if available:
-                    transcript_obj = available[0]
-                    # Try to translate to English if possible
-                    try:
-                        fetched_transcript = transcript_obj.translate('en').fetch()
-                    except Exception:
-                        # If translation fails, use original transcript
-                        fetched_transcript = transcript_obj.fetch()
-            except Exception:
-                pass
-        
-        if fetched_transcript is None:
+        if not transcript:
             raise HTTPException(status_code=400, detail="No transcripts available for this video.")
-        
-        transcript = " ".join(snippet.text for snippet in fetched_transcript)
     except HTTPException:
         raise
     except TranscriptsDisabled:
@@ -243,16 +220,8 @@ async def load_video(request: LoadVideoRequest):
     except Exception as e:
         error_msg = str(e)
         logger.error(f"Transcript fetch error: {error_msg}")
-        
-        # Identify specific errors
-        if "429" in error_msg or "rate_limit" in error_msg.lower():
-            detail = "API rate limit exceeded. Try again in a few minutes."
-        elif "IP" in error_msg or "blocking" in error_msg.lower():
-            detail = "YouTube is blocking requests. Response: " + error_msg[:100]
-        else:
-            detail = f"Failed to fetch transcript: {error_msg[:200]}"
-        
-        raise HTTPException(status_code=400, detail=detail)
+        # Return the actual error so user can see what YouTube is saying
+        raise HTTPException(status_code=400, detail=error_msg)
     
     # Split text into chunks
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)

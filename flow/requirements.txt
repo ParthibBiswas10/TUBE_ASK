@@ -33,6 +33,9 @@ langchain-groq
 # YouTube Transcript
 youtube-transcript-api
 
+# Embeddings (local, no API token needed)
+sentence-transformers
+
 # Vector Store
 langchain-community
 faiss-cpu
