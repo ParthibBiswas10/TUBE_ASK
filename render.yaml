@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: youtube-qa-api
+    env: python
+    buildCommand: pip install -r flow/requirements.txt
+    startCommand: python flow/main.py
+    envVars:
+      - key: GROQ_API_KEY
+        scope: run
+      - key: PORT
+        value: 8080
