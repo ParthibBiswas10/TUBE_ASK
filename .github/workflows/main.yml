@@ -22,4 +22,4 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           git remote add hf https://user:$HUGGINGFACEHUB_API_TOKEN@huggingface.co/spaces/ParthibBiswas-HG/YT_query
-          git push --force hf main
+          git push --force hf main 
