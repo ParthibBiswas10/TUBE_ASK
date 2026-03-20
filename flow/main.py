@@ -220,7 +220,7 @@ async def load_video(request: LoadVideoRequest):
     except Exception as e:
         error_msg = str(e)
         logger.error(f"Transcript fetch error: {error_msg}")
-        # Return the actual error so user can see what YouTube is saying
+        # Return the actual error so user can see what YouTube is sayinggggg
         raise HTTPException(status_code=400, detail=error_msg)
     
     # Split text into chunks
