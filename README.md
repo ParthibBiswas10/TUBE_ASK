@@ -1,3 +1,12 @@
+---
+license: apache-2.0
+title: query yt
+sdk: docker
+emoji: 🏆
+colorFrom: red
+colorTo: yellow
+short_description: Query App
+---
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
