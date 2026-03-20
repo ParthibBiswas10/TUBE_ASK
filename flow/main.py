@@ -211,7 +211,7 @@ async def load_video(request: LoadVideoRequest):
         logger.info(f"Got transcript of {len(transcript)} characters")
         
         if not transcript:
-            raise HTTPException(status_code=400, detail="No transcripts available for this videooooo.")
+            raise HTTPException(status_code=400, detail="No transcripts available for this video.")
     except HTTPException:
         raise
     except TranscriptsDisabled:
