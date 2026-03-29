@@ -49,11 +49,21 @@ llm = ChatGroq(
     api_key=os.getenv("GROQ_API_KEY")
 )
 
-embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2",
-    model_kwargs={"token": False},
-    encode_kwargs={"normalize_embeddings": True}
-)
+# Lazy-loaded embeddings — initialized on first /load request so
+# the server binds its port immediately without waiting for model download.
+_embeddings = None
+
+def get_embeddings():
+    global _embeddings
+    if _embeddings is None:
+        logger.info("Initializing HuggingFace embeddings (first use)...")
+        _embeddings = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2",
+            model_kwargs={"token": False},
+            encode_kwargs={"normalize_embeddings": True}
+        )
+        logger.info("Embeddings ready.")
+    return _embeddings
 
 # Prompt template
 prompt = PromptTemplate(
@@ -233,7 +243,7 @@ async def load_video(request: LoadVideoRequest):
     for attempt in range(3):
         try:
             logger.info(f"Embedding attempt {attempt + 1} for video {video_id}")
-            vectorstore = FAISS.from_texts(chunks, embeddings)
+            vectorstore = FAISS.from_texts(chunks, get_embeddings())
             retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
             video_sessions[video_id] = retriever
             logger.info(f"✅ Successfully loaded video {video_id}")
