@@ -31,7 +31,7 @@ llm = ChatGroq(
 
 embeddings = HuggingFaceEndpointEmbeddings(
     model="sentence-transformers/all-MiniLM-L6-v2",
-    huggingfacehub_api_token=os.getenv("HUGGINGFACEHUB_API_TOKEN")
+    huggingfacehub_api_token=os.getenv("HF_TOKEN")
 )
 
 '''rsult=llm.invoke("WHO IS MESSI?")

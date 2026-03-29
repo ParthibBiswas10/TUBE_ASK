@@ -50,8 +50,9 @@ llm = ChatGroq(
 )
 
 embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
-    HF_TOKEN=os.getenv("HF_TOKEN")
+    model_name="sentence-transformers/all-MiniLM-L6-v2",
+    model_kwargs={"token": False},
+    encode_kwargs={"normalize_embeddings": True}
 )
 
 # Prompt template
