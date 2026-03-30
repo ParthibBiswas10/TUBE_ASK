@@ -9,8 +9,8 @@ COPY . .
 # Install dependencies from flow folder
 RUN pip install --no-cache-dir -r flow/requirements.txt
 
-# Expose HF default port
-EXPOSE 7860
+# Expose the FastAPI port
+EXPOSE 8080
 
 # Run your app from flow
 CMD ["python", "flow/main.py"]

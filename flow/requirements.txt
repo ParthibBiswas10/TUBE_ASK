@@ -1,6 +1,6 @@
-# LangChain Core
-langchain
-langchain-core
+# LangChain Core (pinned for Python 3.14 compatibility)
+langchain>=0.1.0
+langchain-core>=0.1.0
 
 # OpenAI Integration
 langchain-openai
@@ -22,8 +22,8 @@ huggingface-hub
 python-dotenv
 
 # FastAPI & Server
-fastapi
-uvicorn[standard]
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
 python-multipart
 gunicorn
 
@@ -37,5 +37,8 @@ youtube-transcript-api
 sentence-transformers
 
 # Vector Store
-langchain-community
+langchain-community>=0.0.10
 faiss-cpu
+
+# Pydantic 2.x (required for Python 3.14 support)
+pydantic>=2.0.0
